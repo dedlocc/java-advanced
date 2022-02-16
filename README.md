@@ -3,6 +3,18 @@
 [Условия домашних заданий](https://www.kgeorgiy.info/courses/java-advanced/homeworks.html)
 
 
+## Домашнее задание 2. ArraySortedSet
+
+Исходный код
+
+ * простой вариант (`SortedSet`): 
+    [тесты](modules/info.kgeorgiy.java.advanced.arrayset/info/kgeorgiy/java/advanced/arrayset/SortedSetTest.java)
+ * сложный вариант (`NavigableSet`): 
+    [тесты](modules/info.kgeorgiy.java.advanced.arrayset/info/kgeorgiy/java/advanced/arrayset/NavigableSetTest.java)
+
+Тестовый модуль: [info.kgeorgiy.java.advanced.arrayset](artifacts/info.kgeorgiy.java.advanced.arrayset.jar)
+
+
 ## Домашнее задание 1. Обход файлов
 
 Исходный код
