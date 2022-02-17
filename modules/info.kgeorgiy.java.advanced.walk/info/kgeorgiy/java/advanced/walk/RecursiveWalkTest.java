@@ -6,8 +6,12 @@ import org.junit.runners.MethodSorters;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Tests for hard version
@@ -20,10 +24,32 @@ public class RecursiveWalkTest extends WalkTest {
     public RecursiveWalkTest() {
     }
 
+    @Test @Override
+    public void test46_filesAndDirs() throws IOException {
+        final Map<String, String> entries = randomFiles(10, 100);
+        final Set<String> dirs = randomDirs(5).keySet();
+        test(Stream.concat(entries.keySet().stream(), dirs.stream()).collect(Collectors.toSet()), entries);
+    }
+
     @Test
     public void test70_singleRecursion() throws IOException {
         final Path root = getTestDir();
         test(List.of(root.toString()), randomDirs(3, 4, 100, root));
+    }
+
+    @Test
+    public void test80_doubleRecursion() throws IOException {
+        final Path root = getTestDir();
+        final Path dir1 = root.resolve(randomFileName());
+        final Path dir2 = root.resolve(randomFileName());
+        final String from = dir1.toString();
+        final String to = dir2.resolve("..").resolve(dir1.getFileName()).toString();
+
+        final Map<String, String> files = randomDirs(3, 4, 100, dir1);
+        files.putAll(files.entrySet().stream().collect(Collectors.toMap(e -> e.getKey().replace(from, to), Map.Entry::getValue)));
+        files.putAll(randomDirs(3, 4, 100, dir2));
+
+        test(Arrays.asList(from, dir2.toString(), to), files);
     }
 
     private Map<String, String> randomDirs(final int n, final int d, final int maxL, final Path dir) throws IOException {

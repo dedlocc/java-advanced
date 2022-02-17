@@ -7,6 +7,7 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -14,17 +15,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
+import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -51,6 +46,9 @@ public class WalkTest extends BaseTest {
             return FileVisitResult.CONTINUE;
         }
     };
+    protected static final String ERROR_HASH = "0".repeat(40);
+
+    private String alphabet = ENGLISH_DIGITS;
     protected final Random random = new Random(23084701432182342L);
 
     public WalkTest() {
@@ -73,8 +71,85 @@ public class WalkTest extends BaseTest {
     }
 
     @Test
+    public void test15_tenEmptyFiles() throws IOException {
+        test(randomFiles(10, 0));
+    }
+
+    @Test
     public void test20_smallRandomFiles() throws IOException {
         test(randomFiles(10, 100));
+    }
+
+    @Test
+    public void test21_mediumRandomFiles() throws IOException {
+        test(randomFiles(10, 100));
+    }
+
+    @Test
+    public void test22_largeRandomFiles() throws IOException {
+        test(randomFiles(10, 1_000_000));
+    }
+
+    @Test
+    public void test23_veryLargeFile() throws IOException {
+        test(randomFiles(1, 10_000_000));
+    }
+
+    @Test
+    public void test30_missingFiles() throws IOException {
+        final Map<String, String> files = randomFiles(3, 0);
+        files.put(randomFileName(), ERROR_HASH);
+        files.put(randomFileName(), ERROR_HASH);
+        files.put(randomFileName(), ERROR_HASH);
+        final String upperPath = System.getProperty("os.name").toLowerCase().contains("win")
+                ? "//.."
+                : "/../...";
+        files.put(upperPath, ERROR_HASH);
+
+        test(files);
+    }
+
+    @Test
+    public void test40_errorReading() throws IOException {
+        final Map<String, String> files = randomFiles(3, 0);
+        files.put(DIR.toString() + "..", ERROR_HASH);
+        files.put(DIR.toString() + "@", ERROR_HASH);
+        test(files);
+    }
+
+    @Test
+    public void test45_partiallyMissingFiles() throws IOException {
+        final Map<String, String> files = new LinkedHashMap<>();
+        files.put("no-such-file-1", ERROR_HASH);
+        files.putAll(randomFiles(10, 100));
+        files.put("no-such-file-2", ERROR_HASH);
+        files.putAll(randomFiles(10, 100));
+        files.put("no-such-file-3", ERROR_HASH);
+        test(files);
+    }
+
+    @Test
+    public void test46_filesAndDirs() throws IOException {
+        final Map<String, String> entries = new HashMap<>();
+        entries.putAll(randomFiles(10, 100));
+        entries.putAll(randomDirs(10));
+        test(entries);
+    }
+
+    @Test
+    public void test50_whitespaceSupport() throws IOException {
+        testAlphabet(10, 100, " \u00a0_");
+    }
+
+    @Test
+    public void test55_chineseSupport() throws IOException {
+        testAlphabet(10, 100, "\u8acb\u554f\u4f60\u7684\u7a0b\u5e8f\u652f\u6301\u4e2d\u570b");
+    }
+
+    private void testAlphabet(final int n, final int maxL, final String alphabet) throws IOException {
+        this.alphabet = alphabet;
+        test(randomFiles(n, maxL));
+        this.alphabet = ENGLISH_DIGITS;
     }
 
     @Test
@@ -82,8 +157,76 @@ public class WalkTest extends BaseTest {
         runRaw(randomFileName(), randomFileName());
     }
 
-    private Map<String, String> randomFiles(final int n, final int maxL) throws IOException {
+    @Test
+    public void test61_invalidInput() {
+        runRaw("/", randomFileName());
+        runRaw("\0*", randomFileName());
+    }
+
+    @Test
+    public void test62_invalidOutput() throws IOException {
+        final String input = createEmptyFile(testMethodName);
+        runRaw(input, DIR.toString());
+        runRaw(input, "\0*");
+        final String file = createEmptyFile(testMethodName);
+        runRaw(input, file + File.separator + randomFileName());
+    }
+
+    @Test
+    public void test63_invalidFiles() throws IOException {
+        testAlphabet(1, 10, "\0\\*");
+    }
+
+    @Test
+    public void test70_singleArgument() throws IOException {
+        runRaw(createEmptyFile(testMethodName));
+    }
+
+    @Test
+    public void test71_noArguments() {
+        runRaw();
+    }
+
+    @Test
+    public void test72_nullArguments() {
+        runRaw((String[]) null);
+    }
+
+    @Test
+    public void test73_firstArgumentNull() {
+        runRaw(null, "");
+    }
+
+    @Test
+    public void test74_secondArgumentNull() throws IOException {
+        runRaw(createEmptyFile(testMethodName), null);
+    }
+
+    @Test
+    public void test75_threeArguments() throws IOException {
+        runRaw(createEmptyFile("a"), createEmptyFile("b"), "c");
+    }
+
+    protected Map<String, String> randomFiles(final int n, final int maxL) throws IOException {
         return randomFiles(n, maxL, getTestDir());
+    }
+
+    protected Map<String, String> randomDirs(final int n) throws IOException {
+        final Path dir = getTestDir();
+        final Map<String, String> result = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            final String name = randomFileName();
+                final Path path = dir.resolve(name);
+                Files.createDirectories(path);
+                result.put(path.toString(), ERROR_HASH);
+        }
+        return result;
+    }
+
+    private static String createEmptyFile(final String name) throws IOException {
+        final Path input = DIR.resolve(name);
+        Files.write(input, new byte[0]);
+        return input.toString();
     }
 
     protected void test(final Map<String, String> files) {
@@ -147,18 +290,22 @@ public class WalkTest extends BaseTest {
         final Map<String, String> result = new HashMap<>();
         for (int i = 0; i < n; i++) {
             final String name = randomFileName();
-            final Path file = dir.resolve(name);
-            final byte[] bytes = new byte[random.nextInt(maxL + 1)];
-            random.nextBytes(bytes);
-            Files.write(file, bytes);
-            result.put(file.toString(), hash(bytes));
+            try {
+                final Path file = dir.resolve(name);
+                final byte[] bytes = new byte[random.nextInt(maxL + 1)];
+                random.nextBytes(bytes);
+                Files.write(file, bytes);
+                result.put(file.toString(), hash(bytes));
+            } catch (final InvalidPathException ignore) {
+                result.put(dir + File.separator + name, ERROR_HASH);
+            }
         }
         return result;
     }
 
     protected String randomFileName() {
-        return random.ints(30, 0, ENGLISH_DIGITS.length())
-                .mapToObj(i -> ENGLISH_DIGITS.substring(i, i + 1))
+        return random.ints(30, 0, alphabet.length())
+                .mapToObj(i -> alphabet.substring(i, i + 1))
                 .collect(Collectors.joining());
     }
 
