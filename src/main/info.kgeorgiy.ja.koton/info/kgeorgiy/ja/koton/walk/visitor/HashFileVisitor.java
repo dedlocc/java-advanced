@@ -20,7 +20,7 @@ public class HashFileVisitor extends SimpleFileVisitor<Path> {
     @Override
     public FileVisitResult visitFile(Path filePath, BasicFileAttributes attrs) throws IOException {
         try (
-            InputStream inputStream = filePath.getFileSystem().provider().newInputStream(filePath);
+            InputStream inputStream = new FileInputStream(filePath.toFile());
             BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
             DigestInputStream digestStream = new DigestInputStream(bufferedInputStream, digest)
         ) {
