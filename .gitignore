@@ -6,3 +6,6 @@ out/
 
 # Temporary files
 tmp/
+
+# Local tests
+src/test/modules/*_full/
