@@ -38,10 +38,9 @@ public class ArraySet<E> extends AbstractSet<E> implements NavigableSet<E> {
     //
 
     @Override
+    @SuppressWarnings("unchecked")
     public boolean contains(Object o) {
-        @SuppressWarnings("unchecked")
-        var e = (E) o;
-        return Collections.binarySearch(list, e, comparator) >= 0;
+        return Collections.binarySearch(list, (E) o, comparator) >= 0;
     }
 
     @Override
@@ -156,12 +155,9 @@ public class ArraySet<E> extends AbstractSet<E> implements NavigableSet<E> {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private Comparator<? super E> getComparator() {
-        return comparator == null ? (e1, e2) -> {
-            @SuppressWarnings("unchecked")
-            var comparable = (Comparable<? super E>) e1;
-            return comparable.compareTo(e2);
-        } : comparator;
+        return comparator == null ? (e1, e2) -> ((Comparable<? super E>) e1).compareTo(e2) : comparator;
     }
 
     protected ArraySet<E> createSubSet(int head, int tail) {
