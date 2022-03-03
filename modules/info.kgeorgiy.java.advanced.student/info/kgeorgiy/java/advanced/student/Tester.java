@@ -13,6 +13,7 @@ public final class Tester {
         new BaseTester()
                 .add("StudentQuery", StudentQueryTest.class)
                 .add("GroupQuery", GroupQueryTest.class)
+                .add("AdvancedQuery", AdvancedQueryTest.class)
                 .run(args);
     }
 }
