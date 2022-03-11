@@ -13,6 +13,8 @@ public final class Tester {
         new BaseTester()
                 .add("interface", InterfaceImplementorTest.class)
                 .add("class", ClassImplementorTest.class)
+                .add("jar-interface", InterfaceJarImplementorTest.class)
+                .add("jar-class", ClassJarImplementorTest.class)
                 .run(args);
     }
 }
