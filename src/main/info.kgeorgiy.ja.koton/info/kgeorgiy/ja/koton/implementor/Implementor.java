@@ -13,7 +13,7 @@ import java.util.stream.Stream;
 
 public class Implementor implements Impler {
     public static void main(String[] args) {
-        if (args == null || args.length < 1 || args[0] == null) {
+        if (args == null || args.length != 1 || args[0] == null) {
             System.err.println("Usage: java Implementor <class>");
             return;
         }
@@ -23,13 +23,14 @@ public class Implementor implements Impler {
                 System.out.print(line);
             }
         } catch (ClassNotFoundException e) {
-            System.err.println("Such class doesn't exist");
+            System.err.println("Such class doesn't exist: " + e.getMessage());
         }
     }
 
     @Override
     public void implement(Class<?> token, Path root) throws ImplerException {
-        if (token.isPrimitive() || token == Enum.class || Modifier.isPrivate(token.getModifiers()) || Modifier.isFinal(token.getModifiers())) {
+        int modifiers = token.getModifiers();
+        if (token.isPrimitive() || token == Enum.class || Modifier.isPrivate(modifiers) || Modifier.isFinal(modifiers)) {
             throw new ImplerException("Cannot extend nor implement " + token.getSimpleName());
         }
         if (!token.isInterface() && Arrays.stream(token.getDeclaredConstructors()).allMatch(c -> Modifier.isPrivate(c.getModifiers()))) {
@@ -61,7 +62,8 @@ public class Implementor implements Impler {
         //
 
         private Stream<String> generateHeader(Class<?> token) {
-            return concat("package ", token.getPackageName(), ";", NEW_LINE);
+            String packageName = token.getPackageName();
+            return packageName.isEmpty() ? Stream.empty() : concat("package ", packageName, ";", NEW_LINE);
         }
 
         private Stream<String> generateClass(Class<?> token) {
@@ -79,7 +81,9 @@ public class Implementor implements Impler {
 
         private Stream<String> generateMethods(Class<?> token) {
             return concat(
-                Arrays.stream(token.getDeclaredConstructors()).flatMap(this::generateConstructor),
+                Arrays.stream(token.getDeclaredConstructors())
+                    .filter(ctor -> !Modifier.isPrivate(ctor.getModifiers()))
+                    .flatMap(this::generateConstructor),
                 Stream.concat(
                         Arrays.stream(token.getMethods()),
                         Stream.<Class<?>>iterate(token, Objects::nonNull, Class::getSuperclass)
@@ -103,11 +107,13 @@ public class Implementor implements Impler {
                     getThrow(ctor)
                 ),
                 NEW_LINE,
-                tab(2) + Arrays.stream(ctor.getParameters())
+                tab(2),
+                Arrays.stream(ctor.getParameters())
                     .map(Parameter::getName)
                     .collect(Collectors.joining(",", "super(", ");")),
                 NEW_LINE,
-                tab(1) + "}",
+                tab(1),
+                "}",
                 NEW_LINE
             );
         }
@@ -127,7 +133,8 @@ public class Implementor implements Impler {
                     .filter(t -> t != void.class)
                     .map(t -> tab(2) + String.format("return %s;%n", getDefaultValue(t)))
                     .stream(),
-                tab(1) + "}",
+                tab(1),
+                "}",
                 NEW_LINE
             );
         }
