@@ -3,6 +3,25 @@
 [Условия домашних заданий](https://www.kgeorgiy.info/courses/java-advanced/homeworks.html)
 
 
+## Домашнее задание 6. Итеративный параллелизм
+
+Тестирование
+
+ * простой вариант (`scalar`):
+    * Класс должен реализовывать интерфейс
+      [ScalarIP](modules/info.kgeorgiy.java.advanced.concurrent/info/kgeorgiy/java/advanced/concurrent/ScalarIP.java).
+    * [тесты](modules/info.kgeorgiy.java.advanced.concurrent/info/kgeorgiy/java/advanced/concurrent/ScalarIPTest.java)
+
+ * сложный вариант (`list`):
+   ```info.kgeorgiy.java.advanced.concurrent list <полное имя класса>```
+    * Класс должен реализовывать интерфейс
+      [ListIP](modules/info.kgeorgiy.java.advanced.concurrent/info/kgeorgiy/java/advanced/concurrent/ListIP.java).
+    * [тесты](modules/info.kgeorgiy.java.advanced.concurrent/info/kgeorgiy/java/advanced/concurrent/ListIPTest.java)
+
+
+Тестовый модуль: [info.kgeorgiy.java.advanced.concurrent](artifacts/info.kgeorgiy.java.advanced.concurrent.jar)
+
+
 ## Домашнее задание 5. Jar и Javadoc
 
 Класс `Implementor` должен дополнительно реализовывать интерфейс
