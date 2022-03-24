@@ -1,29 +1,66 @@
 package info.kgeorgiy.ja.koton.implementor;
 
-import info.kgeorgiy.java.advanced.implementor.Impler;
 import info.kgeorgiy.java.advanced.implementor.ImplerException;
+import info.kgeorgiy.java.advanced.implementor.JarImpler;
 
+import javax.tools.JavaCompiler;
+import javax.tools.ToolProvider;
 import java.io.*;
 import java.lang.reflect.*;
+import java.net.URISyntaxException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.jar.Attributes;
+import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
 
-public class Implementor implements Impler {
+/**
+ * Class for producing code implementing class or interface specified by provided {@code token}.
+ *
+ * @see JarImpler#implement(Class, Path)
+ * @see JarImpler#implementJar(Class, Path)
+ */
+public class Implementor implements JarImpler {
+    /**
+     * The entry point for {@link Implementor}.
+     * <p>
+     * If the first argument is exactly {@code "-jar"}, runs {@link #implementJar(Class, Path)}.
+     * Otherwise, runs {@link #implement(Class, Path)}.
+     * Class token and path are defined by the next two arguments.
+     * <p>
+     * If any of the arguments or the array itself are null or/and the number of arguments
+     * doesn't match any of the possible usages stated above, prints an error message.
+     *
+     * @param args array of arguments
+     */
     public static void main(String[] args) {
-        if (args == null || args.length != 1 || args[0] == null) {
-            System.err.println("Usage: java Implementor <class>");
+        if (args == null || args.length == 0 || Arrays.stream(args).anyMatch(Objects::isNull) || args.length != (args[0].equals("-jar") ? 3 : 2)) {
+            System.err.println("Usage: java Implementor [-jar] <className> <destination>");
             return;
         }
 
         try {
-            for (String line : (Iterable<String>) new CodeGenerator().generate(Class.forName(args[0]))::iterator) {
-                System.out.print(line);
+            Class<?> token = Class.forName(args[args.length - 2]);
+            Path dest = Path.of(args[args.length - 1]);
+            Implementor impl = new Implementor();
+
+            if (args[0].equals("-jar")) {
+                impl.implement(token, dest);
+            } else {
+                impl.implementJar(token, dest);
             }
         } catch (ClassNotFoundException e) {
             System.err.println("Such class doesn't exist: " + e.getMessage());
+        } catch (InvalidPathException e) {
+            System.err.println("No such path: " + e.getMessage());
+        } catch (ImplerException e) {
+            System.err.println(e.getMessage());
         }
     }
 
@@ -34,38 +71,203 @@ public class Implementor implements Impler {
             throw new ImplerException("Cannot extend nor implement " + token.getSimpleName());
         }
         if (!token.isInterface() && Arrays.stream(token.getDeclaredConstructors()).allMatch(c -> Modifier.isPrivate(c.getModifiers()))) {
-            throw new ImplerException("Won't extend an utility class");
+            throw new ImplerException("Cannot extend an utility class");
         }
 
-        Path dir = root.resolve(token.getPackageName().replace('.', File.separatorChar));
+        Path javaFile = getFullPath(token, root, Extension.JAVA);
         try {
-            Files.createDirectories(dir);
-            try (var writer = Files.newBufferedWriter(dir.resolve(getClassName(token) + ".java"))) {
-                for (String line : (Iterable<String>) new CodeGenerator().generate(token)::iterator) {
-                    writer.write(line);
+            Files.createDirectories(javaFile.getParent());
+            try (var writer = Files.newBufferedWriter(javaFile)) {
+                for (String string : (Iterable<String>) new CodeGenerator().generate(token)::iterator) {
+                    writer.write(string);
                 }
             }
         } catch (IOException e) {
-            throw new ImplerException(e);
+            throw new ImplerException("Error while writing class code", e);
         }
     }
 
+    @Override
+    public void implementJar(Class<?> token, Path jarFile) throws ImplerException {
+        Path dir = Path.of("__build__");
+        try {
+            Files.createDirectory(dir);
+        } catch (FileAlreadyExistsException e) {
+            throw new ImplerException(dir + " directory already exists, cannot compile", e);
+        } catch (IOException e) {
+            throw new ImplerException(e);
+        }
+
+        implement(token, dir);
+        compile(token, dir);
+        createJar(dir, getFullPath(token, Extension.CLASS), jarFile);
+        if (!dir.toFile().delete()) {
+            throw new ImplerException("Could not delete build directory: " + dir);
+        }
+    }
+
+    /**
+     * Compiles java code generated by {@link #implement(Class, Path)}.
+     *
+     * @param token class token which implementation is to be compiled
+     * @param root  directory containing the class sources
+     * @throws ImplerException if java compiler cannot be found
+     * @throws ImplerException if compilation fails
+     */
+    private static void compile(Class<?> token, Path root) throws ImplerException {
+        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+        if (compiler == null) {
+            throw new ImplerException("Could not find java compiler");
+        }
+        Path classpath;
+        try {
+            classpath = Path.of(token.getProtectionDomain().getCodeSource().getLocation().toURI());
+        } catch (URISyntaxException e) {
+            throw new ImplerException(e);
+        }
+        String[] args = {getFullPath(token, root, Extension.JAVA).toString(), "-cp", classpath.toString()};
+        if (compiler.run(null, null, null, args) != 0) {
+            throw new ImplerException("Could not compile generated class");
+        }
+    }
+
+    /**
+     * Creates a jar from the compiled class.
+     *
+     * @param root      path to directory containing the compiled class
+     * @param classFile full class path of a class to be included in jar
+     * @param jarFile   path to target jar file
+     * @throws ImplerException if {@link IOException} is thrown while writing to jar
+     */
+    private static void createJar(Path root, Path classFile, Path jarFile) throws ImplerException {
+        Manifest manifest = new Manifest();
+        manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
+
+        try (var stream = new JarOutputStream(Files.newOutputStream(jarFile), manifest)) {
+            stream.putNextEntry(new ZipEntry(classFile.toString().replace(File.separatorChar, '/')));
+            Files.copy(root.resolve(classFile), stream);
+        } catch (IOException e) {
+            throw new ImplerException("Error while writing to jar", e);
+        }
+    }
+
+    /**
+     * Returns target class name by the provided class token.
+     * The class name is just the {@link Class#getSimpleName()} of {@code token}
+     * appended by {@code "Impl"}.
+     *
+     * @param token class token on which the target class name is based
+     * @return target class name
+     */
     private static String getClassName(Class<?> token) {
         return token.getSimpleName() + "Impl";
     }
 
+    /**
+     * Returns full class path with an extension appended, that is, its package where
+     * each dot is replaced by the system-depended path separator provided by {@link File#separatorChar}
+     * appended by the target class name provided by {@link #getClassName(Class)} and {@code extension}.
+     *
+     * @param token     class token on which the full class path is based
+     * @param extension extension to be appended
+     * @return full class path
+     */
+    private static Path getFullPath(Class<?> token, Extension extension) {
+        return Path.of(token.getPackageName().replace('.', File.separatorChar))
+            .resolve(getClassName(token) + '.' + extension);
+    }
+
+    /**
+     * Returns full class path, relative to {@code root}, with an extension appended, that is, its package where
+     * each dot is replaced by the system-depended path separator provided by {@link File#separatorChar}
+     * prepended by {@code root} and appended by the target class name
+     * provided by {@link #getClassName(Class)} and {@code extension}.
+     * <p>
+     * Equivalent to {@code root.resolve(getFullPath(token, extension))}.
+     *
+     * @param token     class token on which the full class path is based
+     * @param root      path to be prepended
+     * @param extension extension to be appended
+     * @return full class path
+     */
+    private static Path getFullPath(Class<?> token, Path root, Extension extension) {
+        return root.resolve(getFullPath(token, extension));
+    }
+
+    /**
+     * Enumeration with extensions used in {@link #implement(Class, Path)} and {@link #implementJar(Class, Path)}.
+     * This is to avoid string literals.
+     */
+    private enum Extension {
+        /**
+         * .java extension (for source java code).
+         */
+        JAVA,
+        /**
+         * .class extension (for compiled java code).
+         */
+        CLASS;
+
+        @Override
+        public String toString() {
+            return super.toString().toLowerCase();
+        }
+    }
+
+    /**
+     * Responsible for generating code for {@link #implement(Class, Path)}.
+     * <p>
+     * Most methods return a stream of strings that if concatenated form the code
+     * for the corresponding part of the class file.
+     */
     private static class CodeGenerator {
+        /**
+         * Generates code for {@link #implement(Class, Path)} that represents a class
+         * implementing a class or interface specified by {@code token}.
+         * <p>
+         * The code is properly formatted.
+         * <p>
+         * The generated class consists of two sections separated by an empty line:
+         * header (see {@link #generateHeader(Class)}) and class itself (see {@link #generateClass(Class)}).
+         *
+         * @param token class token that specifies the class or interface to be implemented
+         * @return stream of strings that if concatenated form the generated code of the whole class file
+         */
         public Stream<String> generate(Class<?> token) {
             return concat(generateHeader(token), NEW_LINE, generateClass(token));
         }
 
         //
 
+        /**
+         * Generates the header, that is, {@code package} and {@code import} statements.
+         * <p>
+         * Package name is same as the package name of {@code token}. If its {@code package} is unnamed,
+         * no package statement is generated.
+         * <p>
+         * {@code import} statements are optional. If present, they come in a lexicographical order.
+         *
+         * @param token class token that specifies the class or interface to be implemented
+         * @return stream of strings that if concatenated form the generated code
+         * @see Class#getPackageName()
+         */
         private Stream<String> generateHeader(Class<?> token) {
             String packageName = token.getPackageName();
             return packageName.isEmpty() ? Stream.empty() : concat("package ", packageName, ";", NEW_LINE);
         }
 
+        /**
+         * Generates the class itself, with all methods and constructors.
+         * The class is guaranteed to be public.
+         * <p>
+         * If {@code token} represents a class, the {@code extends} keyword is used.
+         * If {@code token} represents an interface, the {@code implements} keyword is used.
+         * <p>
+         * Methods and constructors are generated by {@link #generateMethods(Class)}.
+         *
+         * @param token class token that specifies the class or interface to be implemented
+         * @return stream of strings that if concatenated form the generated code
+         */
         private Stream<String> generateClass(Class<?> token) {
             return concat(
                 String.format("public class %s %s %s {",
@@ -79,6 +281,24 @@ public class Implementor implements Impler {
             );
         }
 
+        /**
+         * Generates the methods and constructors that are required for the generated class
+         * to be non-abstract while providing the same interface as it does
+         * the class (or interface) represented by {@code token}.
+         * <p>
+         * For every non-private constructor of the class represented by {@code token}
+         * a corresponding constructor is generated by {@link #generateConstructor(Constructor)}.
+         * <p>
+         * For every abstract method of the class represented by {@code token},
+         * including all the abstract methods declared in any of its subclasses or interfaces
+         * that are yet not implemented for {@code token},
+         * a corresponding method is generated by {@link #generateMethod(Method)}.
+         * <p>
+         * All the constructors are guaranteed to precede any other methods.
+         *
+         * @param token class token that specifies the class or interface to be implemented
+         * @return stream of strings that if concatenated form the generated code
+         */
         private Stream<String> generateMethods(Class<?> token) {
             return concat(
                 Arrays.stream(token.getDeclaredConstructors())
@@ -97,6 +317,22 @@ public class Implementor implements Impler {
             );
         }
 
+        /**
+         * Generates a constructor based on a corresponding constructor in {@code token}.
+         * <p>
+         * The generated constructor has the same access modifiers, parameter list and
+         * throws as {@code ctor}.
+         * Full list of modifiers is defined by {@link #getModifiers(Executable)}.
+         * <p>
+         * The body contains a single call to the super constructor, passing all
+         * the arguments to it.
+         *
+         * @param ctor constructor to be replicated
+         * @return stream of strings that if concatenated form the generated code
+         * @see #getModifiers(Executable)
+         * @see #getParameters(Executable)
+         * @see #getThrows(Executable)
+         */
         private Stream<String> generateConstructor(Constructor<?> ctor) {
             return concat(
                 tab(1),
@@ -104,7 +340,7 @@ public class Implementor implements Impler {
                     getModifiers(ctor),
                     getClassName(ctor.getDeclaringClass()),
                     getParameters(ctor),
-                    getThrow(ctor)
+                    getThrows(ctor)
                 ),
                 NEW_LINE,
                 tab(2),
@@ -118,6 +354,23 @@ public class Implementor implements Impler {
             );
         }
 
+        /**
+         * Generates a method based on a corresponding abstract method in {@code token}.
+         * <p>
+         * The generated constructor has the same access modifiers, parameter list and
+         * throws as {@code ctor} while being non-abstract.
+         * Full list of modifiers is defined by {@link #getModifiers(Executable)}.
+         * <p>
+         * The body contains a single {@code return} statement returning the default
+         * value of {@link Method#getReturnType()} defined by {@link #getDefaultValue}.
+         * The body is empty if the return type is {@code void}.
+         *
+         * @param method method to be implemented
+         * @return stream of strings that if concatenated form the generated code
+         * @see #getModifiers(Executable)
+         * @see #getParameters(Executable)
+         * @see #getThrows(Executable)
+         */
         private Stream<String> generateMethod(Method method) {
             return concat(
                 tab(1),
@@ -126,7 +379,7 @@ public class Implementor implements Impler {
                     method.getReturnType().getCanonicalName(),
                     method.getName(),
                     getParameters(method),
-                    getThrow(method)
+                    getThrows(method)
                 ),
                 NEW_LINE,
                 Optional.of(method.getReturnType())
@@ -139,26 +392,56 @@ public class Implementor implements Impler {
             );
         }
 
+        /**
+         * Returns a string describing the access modifier flags of {@code exec}
+         * with {@link Modifier#ABSTRACT} and {@link Modifier#TRANSIENT} being filtered out.
+         *
+         * @param exec method or constructor on which modifiers the string is based
+         * @return string representation of the filtered set of modifiers of {@code exec}
+         */
         private String getModifiers(Executable exec) {
             return Modifier.toString(exec.getModifiers() & ~Modifier.ABSTRACT & ~Modifier.TRANSIENT);
         }
 
+        /**
+         * Returns a string describing the parameter list of {@code exec}.
+         * Parameters are comma-with-a-space-separated and the whole list is enclosed in parentheses.
+         *
+         * @param exec method or constructor which the parameter list is returned
+         * @return string representation of the parameter list of {@code exec}
+         */
         private String getParameters(Executable exec) {
             return Arrays.stream(exec.getParameters())
                 .map(p -> p.getType().getCanonicalName() + " " + p.getName())
-                .collect(Collectors.joining(",", "(", ")"));
+                .collect(Collectors.joining(", ", "(", ")"));
         }
 
-        private String getThrow(Executable exec) {
+        /**
+         * Returns a string describing the list of exception types explicitly specified
+         * to be thrown from {@code exec}.
+         * Exception types are comma-with-a-space-separated and preceded by {@code throws}.
+         *
+         * @param exec method or constructor which the parameter list is returned
+         * @return string representation of the parameter list of {@code exec}
+         */
+        private String getThrows(Executable exec) {
             if (exec.getExceptionTypes().length == 0) {
                 return "";
             }
 
             return Arrays.stream(exec.getExceptionTypes())
-                .map(Class::getName)
-                .collect(Collectors.joining(",", " throws ", ""));
+                .map(Class::getCanonicalName)
+                .collect(Collectors.joining(", ", " throws ", ""));
         }
 
+        /**
+         * Returns a string describing the default value for a variable of type
+         * represented by {@code token}, that is, {@code null} for reference types,
+         * {@code false} for {@code boolean} and {@code 0} otherwise.
+         *
+         * @param token type for which the default value is returned
+         * @return string representation of the default value of {@code token}
+         */
         private String getDefaultValue(Class<?> token) {
             if (!token.isPrimitive()) {
                 return "null";
@@ -171,17 +454,39 @@ public class Implementor implements Impler {
 
         //
 
+        /**
+         * String representation of a new line, returned by {@link System#lineSeparator()}.
+         */
         private static final String NEW_LINE = System.lineSeparator();
 
+        /**
+         * Concatenates an arbitrary number of strings and streams of strings into a sequential stream of strings.
+         * Each object in {@code objects} must be either {@link String} or {@link Stream<String>}.
+         *
+         * @param objects strings and streams of strings to be concatenated
+         * @return sequential stream of strings given by {@code objects} flattening
+         */
         @SuppressWarnings("unchecked")
         private static Stream<String> concat(Object... objects) {
             return Arrays.stream(objects).flatMap(obj -> obj instanceof String s ? Stream.of(s) : (Stream<String>) obj);
         }
 
+        /**
+         * Returns a string describing indentation by a number of levels provided by {@code levels}.
+         *
+         * @param levels number of indentation levels
+         * @return string indenting by the provided number of levels
+         */
         private String tab(int levels) {
             return " ".repeat(levels * 4);
         }
 
+        /**
+         * A wrapper over {@link Method} that compares equal to another such wrapper
+         * iff the underlying methods' signatures compare equal.
+         *
+         * @param method underlying method
+         */
         private record MethodWrapper(Method method) {
             @Override
             public boolean equals(Object o) {
@@ -197,7 +502,7 @@ public class Implementor implements Impler {
 
             @Override
             public int hashCode() {
-                return method.getName().hashCode() + 103 * Arrays.hashCode(method.getParameterTypes());
+                return Objects.hash(method.getName(), Arrays.hashCode(method.getParameterTypes()));
             }
         }
     }
