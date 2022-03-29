@@ -8,10 +8,8 @@ import javax.tools.ToolProvider;
 import java.io.*;
 import java.lang.reflect.*;
 import java.net.URISyntaxException;
-import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
-import java.nio.file.Path;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.jar.Attributes;
 import java.util.jar.JarOutputStream;
@@ -78,7 +76,11 @@ public class Implementor implements JarImpler {
         try {
             Files.createDirectories(javaFile.getParent());
             try (var writer = Files.newBufferedWriter(javaFile)) {
-                for (String string : (Iterable<String>) new CodeGenerator().generate(token)::iterator) {
+                var codeStream = new CodeGenerator()
+                    .generate(token)
+                    .flatMapToInt(String::chars)
+                    .mapToObj(c -> String.format("\\u%04X", c));
+                for (String string : (Iterable<String>) codeStream::iterator) {
                     writer.write(string);
                 }
             }
@@ -101,8 +103,10 @@ public class Implementor implements JarImpler {
         implement(token, dir);
         compile(token, dir);
         createJar(dir, getFullPath(token, Extension.CLASS), jarFile);
-        if (!dir.toFile().delete()) {
-            throw new ImplerException("Could not delete build directory: " + dir);
+        try {
+            Files.walkFileTree(dir, DELETE_VISITOR);
+        } catch (IOException e) {
+            throw new ImplerException("Could not delete build directory: " + dir, e);
         }
     }
 
@@ -213,6 +217,23 @@ public class Implementor implements JarImpler {
             return super.toString().toLowerCase();
         }
     }
+
+    /**
+     * A visitor that recursively deletes a given directory and all its contents.
+     */
+    private static final SimpleFileVisitor<Path> DELETE_VISITOR = new SimpleFileVisitor<>() {
+        @Override
+        public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
+            Files.delete(file);
+            return FileVisitResult.CONTINUE;
+        }
+
+        @Override
+        public FileVisitResult postVisitDirectory(final Path dir, final IOException exc) throws IOException {
+            Files.delete(dir);
+            return FileVisitResult.CONTINUE;
+        }
+    };
 
     /**
      * Responsible for generating code for {@link #implement(Class, Path)}.
