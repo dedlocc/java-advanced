@@ -78,8 +78,8 @@ public class Implementor implements JarImpler {
             try (var writer = Files.newBufferedWriter(javaFile)) {
                 var codeStream = new CodeGenerator()
                     .generate(token)
-                    .flatMapToInt(String::chars)
-                    .mapToObj(c -> String.format("\\u%04X", c));
+                    .flatMapToInt(String::codePoints)
+                    .mapToObj(c -> c < 128 ? String.valueOf((char) c) : String.format("\\u%04x", c));
                 for (String string : (Iterable<String>) codeStream::iterator) {
                     writer.write(string);
                 }
