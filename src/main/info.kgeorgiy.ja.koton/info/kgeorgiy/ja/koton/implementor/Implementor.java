@@ -49,9 +49,9 @@ public class Implementor implements JarImpler {
             Implementor impl = new Implementor();
 
             if (args[0].equals("-jar")) {
-                impl.implement(token, dest);
-            } else {
                 impl.implementJar(token, dest);
+            } else {
+                impl.implement(token, dest);
             }
         } catch (ClassNotFoundException e) {
             System.err.println("Such class doesn't exist: " + e.getMessage());
