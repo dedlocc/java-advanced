@@ -100,13 +100,16 @@ public class Implementor implements JarImpler {
             throw new ImplerException(e);
         }
 
-        implement(token, dir);
-        compile(token, dir);
-        createJar(dir, getFullPath(token, Extension.CLASS), jarFile);
         try {
-            Files.walkFileTree(dir, DELETE_VISITOR);
-        } catch (IOException e) {
-            throw new ImplerException("Could not delete build directory: " + dir, e);
+            implement(token, dir);
+            compile(token, dir);
+            createJar(dir, getFullPath(token, Extension.CLASS), jarFile);
+        } finally {
+            try {
+                Files.walkFileTree(dir, DELETE_VISITOR);
+            } catch (IOException e) {
+                throw new ImplerException("Could not delete build directory: " + dir, e);
+            }
         }
     }
 
@@ -378,8 +381,8 @@ public class Implementor implements JarImpler {
         /**
          * Generates a method based on a corresponding abstract method in {@code token}.
          * <p>
-         * The generated constructor has the same access modifiers, parameter list and
-         * throws as {@code ctor} while being non-abstract.
+         * The generated method has the same access modifiers, parameter list and
+         * throws as {@code method} while being non-abstract.
          * Full list of modifiers is defined by {@link #getModifiers(Executable)}.
          * <p>
          * The body contains a single {@code return} statement returning the default
