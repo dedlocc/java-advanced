@@ -274,7 +274,8 @@ public class Implementor implements JarImpler {
                 ),
                 NEW_LINE,
                 generateMethods(token),
-                "}"
+                "}",
+                NEW_LINE
             );
         }
 
