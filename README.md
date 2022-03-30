@@ -30,6 +30,10 @@
     * Класс должен реализовывать интерфейс
       [ListIP](modules/info.kgeorgiy.java.advanced.concurrent/info/kgeorgiy/java/advanced/concurrent/ListIP.java).
     * [тесты](modules/info.kgeorgiy.java.advanced.concurrent/info/kgeorgiy/java/advanced/concurrent/ListIPTest.java)
+ * продвинутый вариант (`advanced`):
+    * Класс должен реализовывать интерфейс
+      [AdvancedIP](modules/info.kgeorgiy.java.advanced.concurrent/info/kgeorgiy/java/advanced/concurrent/AdvancedIP.java).
+    * [тесты](modules/info.kgeorgiy.java.advanced.concurrent/info/kgeorgiy/java/advanced/concurrent/AdvancedIPTest.java)
 
 
 Тестовый модуль: [info.kgeorgiy.java.advanced.concurrent](artifacts/info.kgeorgiy.java.advanced.concurrent.jar)
