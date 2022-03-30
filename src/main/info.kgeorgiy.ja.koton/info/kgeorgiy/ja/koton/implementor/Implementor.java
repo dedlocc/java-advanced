@@ -97,6 +97,7 @@ public class Implementor implements JarImpler {
         } catch (IOException e) {
             throw new ImplerException("Unable to create build directory", e);
         }
+        dir.toFile().deleteOnExit();
 
         implement(token, dir);
         compile(token, dir);
