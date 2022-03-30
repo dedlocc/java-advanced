@@ -91,26 +91,16 @@ public class Implementor implements JarImpler {
 
     @Override
     public void implementJar(Class<?> token, Path jarFile) throws ImplerException {
-        Path dir = Path.of("__build__");
+        Path dir;
         try {
-            Files.createDirectory(dir);
-        } catch (FileAlreadyExistsException e) {
-            throw new ImplerException(dir + " directory already exists, cannot compile", e);
+            dir = Files.createTempDirectory(jarFile.getParent(), "build_");
         } catch (IOException e) {
-            throw new ImplerException(e);
+            throw new ImplerException("Unable to create build directory", e);
         }
 
-        try {
-            implement(token, dir);
-            compile(token, dir);
-            createJar(dir, getFullPath(token, Extension.CLASS), jarFile);
-        } finally {
-            try {
-                Files.walkFileTree(dir, DELETE_VISITOR);
-            } catch (IOException e) {
-                throw new ImplerException("Could not delete build directory: " + dir, e);
-            }
-        }
+        implement(token, dir);
+        compile(token, dir);
+        createJar(dir, getFullPath(token, Extension.CLASS), jarFile);
     }
 
     /**
