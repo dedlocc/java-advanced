@@ -6,6 +6,7 @@ module info.kgeorgiy.ja.koton {
     requires info.kgeorgiy.java.advanced.arrayset;
     requires info.kgeorgiy.java.advanced.student;
     requires info.kgeorgiy.java.advanced.implementor;
+    requires info.kgeorgiy.java.advanced.concurrent;
 
     exports info.kgeorgiy.ja.koton.walk;
     exports info.kgeorgiy.ja.koton.walk.visitor;
