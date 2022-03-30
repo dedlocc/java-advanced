@@ -212,23 +212,6 @@ public class Implementor implements JarImpler {
     }
 
     /**
-     * A visitor that recursively deletes a given directory and all its contents.
-     */
-    private static final SimpleFileVisitor<Path> DELETE_VISITOR = new SimpleFileVisitor<>() {
-        @Override
-        public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
-            Files.delete(file);
-            return FileVisitResult.CONTINUE;
-        }
-
-        @Override
-        public FileVisitResult postVisitDirectory(final Path dir, final IOException exc) throws IOException {
-            Files.delete(dir);
-            return FileVisitResult.CONTINUE;
-        }
-    };
-
-    /**
      * Responsible for generating code for {@link #implement(Class, Path)}.
      * <p>
      * Most methods return a stream of strings that if concatenated form the code
