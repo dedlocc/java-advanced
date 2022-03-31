@@ -8,6 +8,9 @@ import java.util.function.Predicate;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+/**
+ * @author Artem Koton
+ */
 public class IterativeParallelism implements ListIP {
     @Override
     public String join(int threads, List<?> values) throws InterruptedException {
