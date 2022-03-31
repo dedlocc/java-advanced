@@ -9,7 +9,6 @@ import java.io.*;
 import java.lang.reflect.*;
 import java.net.URISyntaxException;
 import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.jar.Attributes;
 import java.util.jar.JarOutputStream;
@@ -60,6 +59,12 @@ public class Implementor implements JarImpler {
         } catch (ImplerException e) {
             System.err.println(e.getMessage());
         }
+    }
+
+    /**
+     * Constructs implementor.
+     */
+    public Implementor() {
     }
 
     @Override
