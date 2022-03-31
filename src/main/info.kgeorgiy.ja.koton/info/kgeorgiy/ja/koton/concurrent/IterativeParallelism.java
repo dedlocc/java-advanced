@@ -64,11 +64,7 @@ public class IterativeParallelism implements ListIP {
 
     @Override
     public <T> boolean any(int threads, List<? extends T> values, Predicate<? super T> predicate) throws InterruptedException {
-        return parallelize(
-            threads, values,
-            Collectors.reducing(false, predicate::test, Boolean::logicalOr),
-            Collectors.reducing(false, Boolean::logicalOr)
-        );
+        return !all(threads, values, predicate.negate());
     }
 
     private <T, U, R> R parallelize(
