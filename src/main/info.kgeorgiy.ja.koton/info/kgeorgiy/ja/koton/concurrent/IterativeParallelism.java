@@ -50,7 +50,7 @@ public class IterativeParallelism implements ListIP {
 
     @Override
     public <T> T minimum(int threads, List<? extends T> values, Comparator<? super T> comparator) throws InterruptedException {
-        return maximum(threads, values, comparator.reversed());
+        return maximum(threads, values, Collections.reverseOrder(comparator));
     }
 
     @Override
@@ -64,7 +64,7 @@ public class IterativeParallelism implements ListIP {
 
     @Override
     public <T> boolean any(int threads, List<? extends T> values, Predicate<? super T> predicate) throws InterruptedException {
-        return !all(threads, values, predicate.negate());
+        return !all(threads, values, Predicate.not(predicate));
     }
 
     private <T, U, R> R parallelize(
