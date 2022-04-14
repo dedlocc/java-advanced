@@ -1,6 +1,7 @@
 package info.kgeorgiy.ja.koton.concurrent;
 
 import info.kgeorgiy.java.advanced.concurrent.ListIP;
+import info.kgeorgiy.java.advanced.mapper.ParallelMapper;
 
 import java.util.*;
 import java.util.function.Function;
@@ -12,6 +13,24 @@ import java.util.stream.Collectors;
  * @author Artem Koton
  */
 public class IterativeParallelism implements ListIP {
+    private final ParallelMapper parallelMapper;
+
+    /**
+     * Creates {@code IterativeParallelism} that will create {@code parallelMapper} each time it needs to parallel tasks.
+     */
+    public IterativeParallelism() {
+        parallelMapper = null;
+    }
+
+    /**
+     * Creates {@code IterativeParallelism} that will use {@code parallelMapper} for running parallel tasks.
+     *
+     * @param parallelMapper mapper to be used
+     */
+    public IterativeParallelism(ParallelMapper parallelMapper) {
+        this.parallelMapper = parallelMapper;
+    }
+
     @Override
     public String join(int threads, List<?> values) throws InterruptedException {
         return parallelize(
@@ -81,22 +100,20 @@ public class IterativeParallelism implements ListIP {
         int blockSize = values.size() / threads;
         int remainder = values.size() % threads;
 
-        List<Thread> workers = new ArrayList<>();
-        List<U> results = new ArrayList<>(Collections.nCopies(threads, null));
+        List<List<? extends T>> subLists = new ArrayList<>(threads);
 
         int pos = 0;
         for (int i = 0; i < threads; ++i) {
-            var sublist = values.subList(pos, pos += blockSize + (i < remainder ? 1 : 0));
-            int threadIndex = i;
-            workers.add(new Thread(() -> results.set(threadIndex, sublist.stream().collect(accumulatingCollector))));
+            subLists.add(values.subList(pos, pos += blockSize + (i < remainder ? 1 : 0)));
         }
 
-        workers.forEach(Thread::start);
+        ParallelMapper parallelMapper = Objects.requireNonNullElseGet(this.parallelMapper, () -> new ParallelMapperImpl(subLists.size()));
+        R results = parallelMapper.map(list -> list.stream().collect(accumulatingCollector), subLists).stream().collect(combiningCollector);
 
-        for (var worker : workers) {
-            worker.join();
+        if (this.parallelMapper == null) {
+            parallelMapper.close();
         }
 
-        return results.stream().collect(combiningCollector);
+        return results;
     }
 }
