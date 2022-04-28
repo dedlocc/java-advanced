@@ -8,4 +8,5 @@ module info.kgeorgiy.ja.koton {
     requires info.kgeorgiy.java.advanced.implementor;
     requires info.kgeorgiy.java.advanced.concurrent;
     requires info.kgeorgiy.java.advanced.mapper;
+    requires info.kgeorgiy.java.advanced.crawler;
 }
