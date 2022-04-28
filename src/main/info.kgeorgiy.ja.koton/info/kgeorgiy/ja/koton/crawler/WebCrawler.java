@@ -1,8 +1,6 @@
 package info.kgeorgiy.ja.koton.crawler;
 
-import info.kgeorgiy.ja.koton.implementor.Implementor;
 import info.kgeorgiy.java.advanced.crawler.*;
-import info.kgeorgiy.java.advanced.implementor.ImplerException;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -121,8 +119,7 @@ public class WebCrawler implements Crawler {
                 return future.get();
             } catch (InterruptedException ignored) {
             }
-        } while (!future.isDone());
-        return null;
+        } while (true);
     }
 
     private class PerHostDownloader {
