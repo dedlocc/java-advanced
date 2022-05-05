@@ -40,7 +40,6 @@ public class HelloUDPClient implements HelloClient {
         try {
             for (var feature : threadPool.invokeAll(IntStream.range(0, threads).mapToObj(nThread -> (Callable<?>) () -> {
                 try (var socket = new DatagramSocket()) {
-                    socket.setReuseAddress(true);
                     socket.connect(address);
                     socket.setSoTimeout(SOCKET_TIMEOUT);
                     for (int nRequest = 0; nRequest < requests; ++nRequest) {

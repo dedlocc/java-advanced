@@ -33,7 +33,6 @@ public class HelloUDPServer implements HelloServer {
         int bufferSize;
         try {
             socket = new DatagramSocket(port);
-            socket.setReuseAddress(true);
             bufferSize = socket.getReceiveBufferSize();
         } catch (SocketException e) {
             throw new RuntimeException("Couldn't open UDP socket", e);
