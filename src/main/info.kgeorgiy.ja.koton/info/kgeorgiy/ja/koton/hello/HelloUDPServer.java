@@ -62,7 +62,6 @@ public class HelloUDPServer implements HelloServer {
             socket.close();
         }
         if (threadPool != null) {
-            threadPool.shutdownNow();
             Util.closeThreadPool(threadPool);
         }
     }

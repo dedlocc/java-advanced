@@ -6,11 +6,14 @@ import java.net.*;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
 public class HelloUDPClient implements HelloClient {
     private static final String MESSAGE_FORMAT = "%s%d_%d";
     private static final int SOCKET_TIMEOUT = 500;
+    private static final Pattern RESPONSE_PATTERN = Pattern.compile("\\D*(\\d+)\\D*(\\d+)\\D*");
 
     public static void main(String[] args) {
         if (args == null || args.length != 5 || Arrays.stream(args).anyMatch(Objects::isNull)) {
@@ -43,15 +46,15 @@ public class HelloUDPClient implements HelloClient {
                     socket.connect(address);
                     socket.setSoTimeout(SOCKET_TIMEOUT);
                     for (int nRequest = 0; nRequest < requests; ++nRequest) {
-                        String message = String.format(MESSAGE_FORMAT, prefix, nThread, nRequest);
-                        DatagramPacket outPacket = Util.createPacket(message);
+                        String request = String.format(MESSAGE_FORMAT, prefix, nThread, nRequest);
+                        DatagramPacket outPacket = Util.createPacket(request);
                         DatagramPacket inPacket = Util.createPacket(socket);
                         while (true) {
                             socket.send(outPacket);
                             try {
                                 socket.receive(inPacket);
                                 String response = Util.extractMessage(inPacket);
-                                if (response.contains(message)) {
+                                if (validateResponse(response, nThread, nRequest)) {
                                     System.out.println(response);
                                     break;
                                 }
@@ -69,5 +72,10 @@ public class HelloUDPClient implements HelloClient {
         } finally {
             Util.closeThreadPool(threadPool);
         }
+    }
+
+    private static boolean validateResponse(String response, int nThread, int nRequest) {
+        Matcher matcher = RESPONSE_PATTERN.matcher(response);
+        return matcher.matches() && matcher.group(1).equals(Integer.toString(nThread)) && matcher.group(2).equals(Integer.toString(nRequest));
     }
 }
