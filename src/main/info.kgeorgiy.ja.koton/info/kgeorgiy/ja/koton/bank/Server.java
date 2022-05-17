@@ -1,5 +1,8 @@
 package info.kgeorgiy.ja.koton.bank;
 
+import info.kgeorgiy.ja.koton.bank.bank.Bank;
+import info.kgeorgiy.ja.koton.bank.bank.RemoteBank;
+
 import java.rmi.*;
 import java.rmi.server.*;
 import java.net.*;

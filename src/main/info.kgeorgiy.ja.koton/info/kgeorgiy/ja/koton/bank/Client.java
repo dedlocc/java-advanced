@@ -1,5 +1,8 @@
 package info.kgeorgiy.ja.koton.bank;
 
+import info.kgeorgiy.ja.koton.bank.account.Account;
+import info.kgeorgiy.ja.koton.bank.bank.Bank;
+
 import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
