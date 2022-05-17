@@ -1,5 +1,7 @@
 module info.kgeorgiy.ja.koton {
     requires java.compiler;
+    requires java.rmi;
+    requires jdk.httpserver;
     requires junit;
 
     requires info.kgeorgiy.java.advanced.walk;
