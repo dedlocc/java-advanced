@@ -8,7 +8,7 @@ import java.rmi.server.*;
 import java.net.*;
 
 public final class Server {
-    private final static int DEFAULT_PORT = 8888;
+    private static final int DEFAULT_PORT = 8888;
 
     public static void main(final String... args) {
         final int port = args.length > 0 ? Integer.parseInt(args[0]) : DEFAULT_PORT;

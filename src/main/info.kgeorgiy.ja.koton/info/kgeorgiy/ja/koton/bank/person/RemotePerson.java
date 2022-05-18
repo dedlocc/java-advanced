@@ -23,7 +23,7 @@ public class RemotePerson extends AbstractPerson {
     }
 
     @Override
-    public RemoteAccount createAccount(String id) throws RemoteException {
+    public RemoteAccount createAccount(final String id) throws RemoteException {
         final String fullId = getAccountId(id);
         System.out.println("Creating remote account " + fullId);
         final RemoteAccount account = new RemoteAccount(fullId);

@@ -29,6 +29,7 @@ public interface Person extends Remote {
 
     /**
      * Creates a new account with specified identifier if it does not already exist.
+     *
      * @param id account id
      * @return created or existing account.
      */
@@ -36,6 +37,7 @@ public interface Person extends Remote {
 
     /**
      * Returns account by identifier.
+     *
      * @param id account id
      * @return account with specified identifier or {@code null} if such account does not exist.
      */

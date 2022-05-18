@@ -2,7 +2,6 @@ package info.kgeorgiy.ja.koton.bank.bank;
 
 import info.kgeorgiy.ja.koton.bank.account.Account;
 import info.kgeorgiy.ja.koton.bank.account.LocalAccount;
-import info.kgeorgiy.ja.koton.bank.account.RemoteAccount;
 import info.kgeorgiy.ja.koton.bank.person.LocalPerson;
 import info.kgeorgiy.ja.koton.bank.person.Person;
 import info.kgeorgiy.ja.koton.bank.person.RemotePerson;
@@ -32,7 +31,7 @@ public class RemoteBank implements Bank {
                 if (person != null) {
                     return person.getAccount(tokenizer.nextToken());
                 }
-            } catch (NumberFormatException ignored) {
+            } catch (final NumberFormatException ignored) {
             }
         }
         return null;

@@ -24,85 +24,85 @@ import java.util.stream.Stream;
  */
 public final class BankWebServer {
     private static final String BUTTONS_TEMPLATE = "" +
-            "<div>" +
-            "  <label>{action}</label>" +
-            "  {buttons}" +
-            "</div>";
+        "<div>" +
+        "  <label>{action}</label>" +
+        "  {buttons}" +
+        "</div>";
     private static final String BUTTON_TEMPLATE = "<input type='submit' name='{action}' value='{name}'>";
 
     private static final String HTML_TEMPLATE = "" +
-            "<html>" +
-            "  <head>" +
-            "    <meta charset='UTF-8'>" +
-            "    <style>" +
-            "      html, body {height: 100%; margin: 0; padding: 0;}" +
-            "      body {display: flex; flex-flow: column; }" +
-            "      body > * {flex: 0 1 auto; margin: 1ex; } " +
-            "      label {min-width: 3em; display: inline-block;}" +
-            "      #log-table { color: lightgray; }" +
-            "      #log {" +
-            "        flex: 1 1 auto; overflow-y: scroll; " +
-            "        display: flex; flex-direction: column-reverse;" +
-            "        font-family: monospace; " +
-            "        background: black; " +
-            "      }" +
-            "      td { white-space: nowrap; vertical-align: top; }" +
-            "      td:last-child { width: 100%; }" +
-            "      td.output { color: white; }" +
-            "      td.info   { color: white; }" +
-            "      td.error  { color: red;   }" +
-            "      td.Client    { color: lightgreen; }" +
-            "      td.Server    { color: lightblue; }" +
-            "      td.Registry  { color: yellow;   }" +
-            "    </style>" +
-            "  </head>" +
-            "  <body>" +
-            "    <h1>Bank</h1>" +
-            "    <form method='POST'>" +
-            "      {start}" +
-            "      {stop}" +
-            "    </form>" +
-            "    <h3>Log</h3>" +
-            "    <div id='log'><table id='log-table'>{log}</table></div>" +
-            "    <script>" +
-            "      const log = document.getElementById('log-table');" +
-            "      function refresh() {" +
-            "        const request = new XMLHttpRequest();" +
-            "        request.onreadystatechange = function(e) {" +
-            "          console.log(this.readyState + ' ' + this.status);" +
-            "          if (this.readyState == 4 && this.status == 200) {" +
-            "            log.innerHTML = this.responseText;" +
-            "          }" +
-            "        };" +
-            "        request.open('GET', 'bank/log');" +
-            "        request.send();" +
-            "      }" +
-            "      setInterval(refresh, 300);" +
-            "    </script>" +
-            "  </body>" +
-            "</html>";
+        "<html>" +
+        "  <head>" +
+        "    <meta charset='UTF-8'>" +
+        "    <style>" +
+        "      html, body {height: 100%; margin: 0; padding: 0;}" +
+        "      body {display: flex; flex-flow: column; }" +
+        "      body > * {flex: 0 1 auto; margin: 1ex; } " +
+        "      label {min-width: 3em; display: inline-block;}" +
+        "      #log-table { color: lightgray; }" +
+        "      #log {" +
+        "        flex: 1 1 auto; overflow-y: scroll; " +
+        "        display: flex; flex-direction: column-reverse;" +
+        "        font-family: monospace; " +
+        "        background: black; " +
+        "      }" +
+        "      td { white-space: nowrap; vertical-align: top; }" +
+        "      td:last-child { width: 100%; }" +
+        "      td.output { color: white; }" +
+        "      td.info   { color: white; }" +
+        "      td.error  { color: red;   }" +
+        "      td.Client    { color: lightgreen; }" +
+        "      td.Server    { color: lightblue; }" +
+        "      td.Registry  { color: yellow;   }" +
+        "    </style>" +
+        "  </head>" +
+        "  <body>" +
+        "    <h1>Bank</h1>" +
+        "    <form method='POST'>" +
+        "      {start}" +
+        "      {stop}" +
+        "    </form>" +
+        "    <h3>Log</h3>" +
+        "    <div id='log'><table id='log-table'>{log}</table></div>" +
+        "    <script>" +
+        "      const log = document.getElementById('log-table');" +
+        "      function refresh() {" +
+        "        const request = new XMLHttpRequest();" +
+        "        request.onreadystatechange = function(e) {" +
+        "          console.log(this.readyState + ' ' + this.status);" +
+        "          if (this.readyState == 4 && this.status == 200) {" +
+        "            log.innerHTML = this.responseText;" +
+        "          }" +
+        "        };" +
+        "        request.open('GET', 'bank/log');" +
+        "        request.send();" +
+        "      }" +
+        "      setInterval(refresh, 300);" +
+        "    </script>" +
+        "  </body>" +
+        "</html>";
     private static final String LOG_ENTRY_TEMPLATE = "" +
-            "<tr>" +
+        "<tr>" +
 //            "  <td>{time}</td>" +
 //            "  <td>{level}</td>" +
-            "  <td class='{app}'>{app}</td>" +
-            "  <td class='{level}'>{message}</td>" +
-            "</tr>";
+        "  <td class='{app}'>{app}</td>" +
+        "  <td class='{level}'>{message}</td>" +
+        "</tr>";
     private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT =
-            ThreadLocal.withInitial(() -> new SimpleDateFormat("HH:mm:ss"));
+        ThreadLocal.withInitial(() -> new SimpleDateFormat("HH:mm:ss"));
     private static final String CLASSPATH = getClassPath();
     private static final String LOCATION = "/bank";
     private static final String ACTION_START = "Start";
     private static final String ACTION_STOP = "Stop";
 
     private final Map<String, App> apps = Map.ofEntries(
-            app("Client 1", "java", "-cp", CLASSPATH, "info.kgeorgiy.ja.koton.bank.Client", "Ivan", "Ivanov", "123", "client-1"),
-            app("Client 2", "java", "-cp", CLASSPATH, "info.kgeorgiy.ja.koton.bank.Client", "Petr", "Petrov", "124", "client-2"),
-            app("Client 3", "java", "-cp", CLASSPATH, "info.kgeorgiy.ja.koton.bank.Client", "Sergey", "Sergeev", "125", "client-3"),
-            app("Server 1", "java", "-cp", CLASSPATH, "info.kgeorgiy.ja.koton.bank.Server", "8881"),
-            app("Server 2", "java", "-cp", CLASSPATH, "info.kgeorgiy.ja.koton.bank.Server", "8882"),
-            app("Registry", "rmiregistry"),
-            app("Registry CP", "rmiregistry", "-J--class-path=" + CLASSPATH)
+        app("Client 1", "java", "-cp", CLASSPATH, "info.kgeorgiy.ja.koton.bank.Client", "Ivan", "Ivanov", "123", "client-1"),
+        app("Client 2", "java", "-cp", CLASSPATH, "info.kgeorgiy.ja.koton.bank.Client", "Petr", "Petrov", "124", "client-2"),
+        app("Client 3", "java", "-cp", CLASSPATH, "info.kgeorgiy.ja.koton.bank.Client", "Sergey", "Sergeev", "125", "client-3"),
+        app("Server 1", "java", "-cp", CLASSPATH, "info.kgeorgiy.ja.koton.bank.Server", "8881"),
+        app("Server 2", "java", "-cp", CLASSPATH, "info.kgeorgiy.ja.koton.bank.Server", "8882"),
+        app("Registry", "rmiregistry"),
+        app("Registry CP", "rmiregistry", "-J--class-path=" + CLASSPATH)
     );
 
     private final List<LogEntry> logs = new ArrayList<>();
@@ -127,9 +127,9 @@ public final class BankWebServer {
             }
 
             send(exchange, template(HTML_TEMPLATE, Map.of(
-                    "start", buttons(ACTION_START),
-                    "stop", buttons(ACTION_STOP),
-                    "log", getLog()
+                "start", buttons(ACTION_START),
+                "stop", buttons(ACTION_STOP),
+                "log", getLog()
             )));
         });
         server.createContext(LOCATION + "/log", exchange -> send(exchange, getLog()));
@@ -176,11 +176,11 @@ public final class BankWebServer {
 
     private String buttons(final String action) {
         return template(BUTTONS_TEMPLATE, Map.of(
+            "action", action,
+            "buttons", apps.keySet().stream().sorted().map(name -> template(BUTTON_TEMPLATE, Map.of(
                 "action", action,
-                "buttons", apps.keySet().stream().sorted().map(name -> template(BUTTON_TEMPLATE, Map.of(
-                        "action", action,
-                        "name", name
-                ))).collect(Collectors.joining())
+                "name", name
+            ))).collect(Collectors.joining())
         ));
     }
 
@@ -219,22 +219,22 @@ public final class BankWebServer {
      */
     private static LinkedHashMap<String, List<String>> splitParams(final String params) {
         return Arrays.stream(params.split("&"))
-                .map(param -> Arrays.stream(param.split("=", 2))
-                        .map(v -> URLDecoder.decode(v, StandardCharsets.UTF_8))
-                        .toArray(String[]::new))
-                .collect(Collectors.groupingBy(
-                        kv -> kv[0],
-                        LinkedHashMap::new,
-                        Collectors.mapping(kv -> kv.length == 2 ? kv[1] : null, Collectors.toList())
-                ));
+            .map(param -> Arrays.stream(param.split("=", 2))
+                .map(v -> URLDecoder.decode(v, StandardCharsets.UTF_8))
+                .toArray(String[]::new))
+            .collect(Collectors.groupingBy(
+                kv -> kv[0],
+                LinkedHashMap::new,
+                Collectors.mapping(kv -> kv.length == 2 ? kv[1] : null, Collectors.toList())
+            ));
     }
 
     private static final Map<Integer, String> HTML_ESCAPES = Map.of(
-            '"', "&quot;",
-            '\'', "&apos;",
-            '<', "&lt;",
-            '>', "&gt;",
-            '&', "&amp;"
+        '"', "&quot;",
+        '\'', "&apos;",
+        '<', "&lt;",
+        '>', "&gt;",
+        '&', "&amp;"
     ).entrySet().stream().collect(Collectors.toMap(e -> (int) e.getKey(), Map.Entry::getValue));
 
     /**
@@ -244,8 +244,8 @@ public final class BankWebServer {
      */
     private static String escapeHTML(final String value) {
         return value.chars()
-                .mapToObj(c -> HTML_ESCAPES.getOrDefault(c, Character.toString(c)))
-                .collect(Collectors.joining());
+            .mapToObj(c -> HTML_ESCAPES.getOrDefault(c, Character.toString(c)))
+            .collect(Collectors.joining());
     }
 
     private static class App {
@@ -335,10 +335,10 @@ public final class BankWebServer {
 
         public LogEntry(final String app, final LogLevel level, final String message) {
             this.html = template(LOG_ENTRY_TEMPLATE, Map.of(
-                    "time", DATE_FORMAT.get().format(new Date()),
-                    "app", app,
-                    "level", level.name().toLowerCase(),
-                    "message", escapeHTML(message)
+                "time", DATE_FORMAT.get().format(new Date()),
+                "app", app,
+                "level", level.name().toLowerCase(),
+                "message", escapeHTML(message)
             ));
         }
 
