@@ -96,9 +96,9 @@ public final class BankWebServer {
     private static final String ACTION_STOP = "Stop";
 
     private final Map<String, App> apps = Map.ofEntries(
-            app("Client 1", "java", "-cp", CLASSPATH, "info.kgeorgiy.ja.koton.bank.Client", "client-1"),
-            app("Client 2", "java", "-cp", CLASSPATH, "info.kgeorgiy.ja.koton.bank.Client", "client-2"),
-            app("Client 3", "java", "-cp", CLASSPATH, "info.kgeorgiy.ja.koton.bank.Client", "client-3"),
+            app("Client 1", "java", "-cp", CLASSPATH, "info.kgeorgiy.ja.koton.bank.Client", "Ivan", "Ivanov", "123", "client-1"),
+            app("Client 2", "java", "-cp", CLASSPATH, "info.kgeorgiy.ja.koton.bank.Client", "Petr", "Petrov", "124", "client-2"),
+            app("Client 3", "java", "-cp", CLASSPATH, "info.kgeorgiy.ja.koton.bank.Client", "Sergey", "Sergeev", "125", "client-3"),
             app("Server 1", "java", "-cp", CLASSPATH, "info.kgeorgiy.ja.koton.bank.Server", "8881"),
             app("Server 2", "java", "-cp", CLASSPATH, "info.kgeorgiy.ja.koton.bank.Server", "8882"),
             app("Registry", "rmiregistry"),

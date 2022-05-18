@@ -12,4 +12,9 @@ module info.kgeorgiy.ja.koton {
     requires info.kgeorgiy.java.advanced.mapper;
     requires info.kgeorgiy.java.advanced.crawler;
     requires info.kgeorgiy.java.advanced.hello;
+
+    opens info.kgeorgiy.ja.koton.bank;
+    opens info.kgeorgiy.ja.koton.bank.account;
+    opens info.kgeorgiy.ja.koton.bank.bank;
+    opens info.kgeorgiy.ja.koton.bank.person;
 }
