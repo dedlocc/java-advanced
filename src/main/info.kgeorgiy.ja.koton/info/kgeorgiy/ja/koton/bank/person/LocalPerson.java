@@ -8,8 +8,8 @@ import java.util.Map;
 public class LocalPerson extends AbstractPerson implements Serializable {
     private final Map<String, LocalAccount> accounts;
 
-    public LocalPerson(final long id, final String firstName, final String lastName, final Map<String, LocalAccount> accounts) {
-        super(id, firstName, lastName);
+    public LocalPerson(final String passportId, final String firstName, final String lastName, final Map<String, LocalAccount> accounts) {
+        super(passportId, firstName, lastName);
         this.accounts = accounts;
     }
 
@@ -22,7 +22,7 @@ public class LocalPerson extends AbstractPerson implements Serializable {
     public LocalAccount createAccount(final String id) {
         final String fullId = getAccountId(id);
         System.out.println("Creating local account " + fullId);
-        return accounts.computeIfAbsent(id, k -> new LocalAccount(id, 0));
+        return accounts.computeIfAbsent(id, k -> new LocalAccount(id));
     }
 
     @Override

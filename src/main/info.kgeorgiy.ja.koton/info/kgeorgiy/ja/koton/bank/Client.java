@@ -30,7 +30,7 @@ public final class Client {
 
         final String firstName;
         final String lastName;
-        final long passportId;
+        final String passportId;
         final String accountId;
         final int amountDiff;
 
@@ -38,7 +38,7 @@ public final class Client {
             int i = 0;
             firstName = i < args.length ? args[i++] : "Georgiy";
             lastName = i < args.length ? args[i++] : "Korneev";
-            passportId = i < args.length ? Long.parseLong(args[i++]) : 4200;
+            passportId = i < args.length ? args[i++] : "4200";
             accountId = i < args.length ? args[i++] : "geo";
             amountDiff = i < args.length ? Integer.parseInt(args[i++]) : 100;
         } catch (NumberFormatException e) {

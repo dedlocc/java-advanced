@@ -12,8 +12,8 @@ public class RemotePerson extends AbstractPerson {
     private final int port;
     private final ConcurrentMap<String, RemoteAccount> accounts = new ConcurrentHashMap<>();
 
-    public RemotePerson(final long id, final String firstName, final String lastName, final int port) {
-        super(id, firstName, lastName);
+    public RemotePerson(final String passportId, final String firstName, final String lastName, final int port) {
+        super(passportId, firstName, lastName);
         this.port = port;
     }
 

@@ -8,9 +8,9 @@ import java.util.Map;
 
 public interface Person extends Remote {
     /**
-     * Returns identification document number.
+     * Returns identification document (usually passport) number.
      */
-    long getId() throws RemoteException;
+    String getPassportId() throws RemoteException;
 
     /**
      * Returns first name.

@@ -8,8 +8,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -21,14 +19,13 @@ import java.util.Random;
 
 import static org.junit.Assert.*;
 
-@RunWith(JUnit4.class)
 public class BankTest {
-    private static Registry registry;
     private static final int REGISTRY_PORT = 8901;
     private static final int BANK_PORT = 8902;
     private static final String BANK_URL = "//localhost/bank";
 
     private static final Random rng = new Random(774229058805375986L);
+    private static Registry registry;
 
     @BeforeClass
     public static void beforeClass() throws RemoteException {
@@ -64,7 +61,7 @@ public class BankTest {
     @Test
     public void createAndGetRemotePerson() throws RemoteException {
         final Person person = createRandomPerson();
-        final Person remotePerson = bank.getPerson(person.getId(), false);
+        final Person remotePerson = bank.getPerson(person.getPassportId(), false);
         assertSame(person, remotePerson);
         assertEquals(person, remotePerson);
     }
@@ -72,19 +69,19 @@ public class BankTest {
     @Test
     public void createAndGetLocalPerson() throws RemoteException {
         final Person person = createRandomPerson();
-        final Person localPerson = bank.getPerson(person.getId(), true);
+        final Person localPerson = bank.getPerson(person.getPassportId(), true);
         assertNotSame(person, localPerson);
         assertEquals(person, localPerson);
     }
 
     @Test
     public void getNonExistingRemotePerson() throws RemoteException {
-        assertNull(bank.getPerson(randomPersonId(), false));
+        assertNull(bank.getPerson(randomPassportId(), false));
     }
 
     @Test
     public void getNonExistingLocalPerson() throws RemoteException {
-        assertNull(bank.getPerson(randomPersonId(), true));
+        assertNull(bank.getPerson(randomPassportId(), true));
     }
 
     @Test
@@ -93,7 +90,7 @@ public class BankTest {
         final String accountId = randomAccountId();
         final Account account = person.createAccount(accountId);
         assertNotNull(account);
-        assertEquals(person.getId() + ":" + accountId, account.getId());
+        assertEquals(person.getPassportId() + ":" + accountId, account.getId());
         assertEquals(0, account.getAmount());
     }
 
@@ -130,8 +127,8 @@ public class BankTest {
     @Test
     public void modifyOriginalPerson() throws RemoteException {
         final Person person = createRandomPerson();
-        final Person remotePerson = bank.getPerson(person.getId(), false);
-        final Person localPerson = bank.getPerson(person.getId(), true);
+        final Person remotePerson = bank.getPerson(person.getPassportId(), false);
+        final Person localPerson = bank.getPerson(person.getPassportId(), true);
 
         assertSame(person, remotePerson);
         assertEquals(localPerson, remotePerson);
@@ -149,8 +146,8 @@ public class BankTest {
     @Test
     public void modifyRemotePerson() throws RemoteException {
         final Person person = createRandomPerson();
-        final Person remotePerson = bank.getPerson(person.getId(), false);
-        final Person localPerson = bank.getPerson(person.getId(), true);
+        final Person remotePerson = bank.getPerson(person.getPassportId(), false);
+        final Person localPerson = bank.getPerson(person.getPassportId(), true);
 
         assertSame(person, remotePerson);
         assertEquals(localPerson, remotePerson);
@@ -168,8 +165,8 @@ public class BankTest {
     @Test
     public void modifyLocalPerson() throws RemoteException {
         final Person person = createRandomPerson();
-        final Person remotePerson = bank.getPerson(person.getId(), false);
-        final Person localPerson = bank.getPerson(person.getId(), true);
+        final Person remotePerson = bank.getPerson(person.getPassportId(), false);
+        final Person localPerson = bank.getPerson(person.getPassportId(), true);
 
         assertSame(person, remotePerson);
         assertEquals(localPerson, remotePerson);
@@ -190,8 +187,8 @@ public class BankTest {
         final String accountId = randomAccountId();
         final Account account = person.createAccount(accountId);
 
-        final Person remotePerson = bank.getPerson(person.getId(), false);
-        final Person localPerson = bank.getPerson(person.getId(), true);
+        final Person remotePerson = bank.getPerson(person.getPassportId(), false);
+        final Person localPerson = bank.getPerson(person.getPassportId(), true);
 
         assertEquals(0, person.getAccount(accountId).getAmount());
         assertEquals(0, remotePerson.getAccount(accountId).getAmount());
@@ -210,8 +207,8 @@ public class BankTest {
         final String accountId = randomAccountId();
         person.createAccount(accountId);
 
-        final Person remotePerson = bank.getPerson(person.getId(), false);
-        final Person localPerson = bank.getPerson(person.getId(), true);
+        final Person remotePerson = bank.getPerson(person.getPassportId(), false);
+        final Person localPerson = bank.getPerson(person.getPassportId(), true);
 
         assertEquals(0, person.getAccount(accountId).getAmount());
         assertEquals(0, remotePerson.getAccount(accountId).getAmount());
@@ -230,8 +227,8 @@ public class BankTest {
         final String accountId = randomAccountId();
         person.createAccount(accountId);
 
-        final Person remotePerson = bank.getPerson(person.getId(), false);
-        final Person localPerson = bank.getPerson(person.getId(), true);
+        final Person remotePerson = bank.getPerson(person.getPassportId(), false);
+        final Person localPerson = bank.getPerson(person.getPassportId(), true);
 
         assertEquals(0, person.getAccount(accountId).getAmount());
         assertEquals(0, remotePerson.getAccount(accountId).getAmount());
@@ -247,33 +244,37 @@ public class BankTest {
     //
 
     private Person createRandomPerson() throws RemoteException {
-        final long id = randomPersonId();
+        final String passportId = randomPassportId();
         final String firstName = randomFirstName();
         final String lastName = randomLastName();
 
-        final Person person = bank.createPerson(id, firstName, lastName);
+        final Person person = bank.createPerson(passportId, firstName, lastName);
         assertNotNull(person);
 
-        assertEquals(id, person.getId());
+        assertEquals(passportId, person.getPassportId());
         assertEquals(firstName, person.getFirstName());
         assertEquals(lastName, person.getLastName());
         assertTrue(person.getAccounts().isEmpty());
         return person;
     }
 
-    private static long randomPersonId() {
-        return rng.nextLong(0, Long.MAX_VALUE);
+    private static String randomString(String prefix) {
+        return prefix + rng.nextInt(0, Integer.MAX_VALUE);
+    }
+
+    private static String randomPassportId() {
+        return randomString("id");
     }
 
     private static String randomFirstName() {
-        return "first" + rng.nextInt(0, Integer.MAX_VALUE);
+        return randomString("first");
     }
 
     private static String randomLastName() {
-        return "last" + rng.nextInt(0, Integer.MAX_VALUE);
+        return randomString("last");
     }
 
     private static String randomAccountId() {
-        return "acc" + rng.nextInt(0, Integer.MAX_VALUE);
+        return randomString("acc");
     }
 }
