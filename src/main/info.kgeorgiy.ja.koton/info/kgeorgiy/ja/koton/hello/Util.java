@@ -1,8 +1,7 @@
 package info.kgeorgiy.ja.koton.hello;
 
 import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.SocketException;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
@@ -20,16 +19,20 @@ final class Util {
         return createPacket(new byte[bufferSize]);
     }
 
-    static DatagramPacket createPacket(DatagramSocket socket) throws SocketException {
-        return createPacket(socket.getReceiveBufferSize());
-    }
-
     static DatagramPacket createPacket(String message) {
         return createPacket(message.getBytes(DEFAULT_CHARSET));
     }
 
+    static byte[] encodeMessage(String message) {
+        return message.getBytes(DEFAULT_CHARSET);
+    }
+
     static String extractMessage(DatagramPacket packet) {
         return new String(packet.getData(), packet.getOffset(), packet.getLength(), DEFAULT_CHARSET);
+    }
+
+    static String extractMessage(ByteBuffer buffer) {
+        return DEFAULT_CHARSET.decode(buffer).toString();
     }
 
     static boolean closeThreadPool(ExecutorService pool, int timeout) {
